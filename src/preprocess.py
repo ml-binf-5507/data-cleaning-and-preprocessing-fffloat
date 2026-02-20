@@ -81,13 +81,9 @@ def detect_feature_types(df: pd.DataFrame, target: str, id_cols: list[str]) -> t
     # 1. Get all columns except target and id_cols:
     # 2. Identify categorical columns (dtype == 'str'):
     # 3. Identify numeric columns (dtype in [int, float]):
-    for col in df.columns:
-        if col not in id_cols and col != target:
-            feature_cols = col
-    for col in feature_cols:
-        cat_cols = df.select_dtypes("str").columns
-        num_cols = df.select_dtypes("float64", "int64").columns
-    
+    feature_cols = [c for c in df.columns if c not in id_cols and c != target]
+    cat_cols = [c for c in feature_cols if df[c].dtype == 'str']
+    num_cols = [c for c in feature_cols if df[c].dtype in ['int64', 'float64']]
     return (cat_cols, num_cols)
 
 
@@ -95,7 +91,7 @@ def detect_feature_types(df: pd.DataFrame, target: str, id_cols: list[str]) -> t
 # STEP 3: ENCODE CATEGORICAL COLUMNS
 # ============================================================================
 
-def encode_categorical(df: pd.DataFrame, cat_cols: list[str]) -> tuple[pd.DataFrame, list[str]]:
+def encode_categorical(df: pd.DataFrame, cat_cols: List[str]) -> Tuple[pd.DataFrame, List[str]]:
     """
     One-hot encode categorical columns.
     
@@ -123,18 +119,17 @@ def encode_categorical(df: pd.DataFrame, cat_cols: list[str]) -> tuple[pd.DataFr
     # then when encoding TEST, you should only create those same columns (don't add new ones).
     # You can use pd.get_dummies(..., columns=...) or post-process to match columns.
     df = df.copy()
-    list_of_encoded_column_names = []
+    encoded_column_names = []
     encoded = pd.DataFrame()
-
     for col in cat_cols:
         dummies = pd.get_dummies(df[col], prefix=col, dtype=int)
         encoded = pd.concat([encoded, dummies], axis=1)
+        encoded_column_names.append(dummies.columns.tolist())
         df.drop(col, axis=1, inplace=True)
-        list_of_encoded_column_names.append(encoded.columns.tolist())
 
     df_with_encoded_cols = pd.concat([df, encoded], axis=1)
 
-    return (df_with_encoded_cols, list_of_encoded_column_names)
+    return (df_with_encoded_cols, encoded_column_names)
 
 
 # ============================================================================
